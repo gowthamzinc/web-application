@@ -12,68 +12,55 @@ import { ClientSideRowModelModule, ValidationModule,ColumnAutoSizeModule } from 
 import useAuth from '../hooks/useAuth';
 import Sidebar from '../components/sidebar';
 import Alert from '../components/alerts';
-import Select from 'react-select';
-
-const customStyles = {
-  menuList: (provided) => ({
-    ...provided,
-    maxHeight: 150, // Set maximum height for the list inside the dropdown
-    overflowY: 'auto', // Enable vertical scrolling
-  }),
-};
 
 ModuleRegistry.registerModules([ClientSideRowModelModule,ValidationModule,ColumnAutoSizeModule]);
 
-export default function sites() {
+export default function materials() {
    
     const { user, userData, loading } = useAuth();
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isUpdate, setIsUpdate] = useState(false);
     const [alert, setAlert] = useState({ type: '', message: '', show: false });
-    const [siteName, setSiteName] = useState('');
-    const [siteAddress, setSiteAddress] = useState('');
-    const [siteId, setSiteId] = useState('');
-    const [sites, setSites] = useState([]);
-    const [customers, setCustomers] = useState([]);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
-    
+
+    const [materialName, setMaterialName] = useState('');
+    const [materialDescription, setMaterialDescription] = useState('');
+    const [materialId, setMaterialId] = useState('');
+    const [materials, setMaterials] = useState([]);
     const [columnDefs] = useState([
-        { field: 'customerName', headerName: 'Customer Name', sortable: true},
-        { field: 'siteName', headerName: 'Site Name', sortable: true},
-        { field: 'siteAddress', headerName: 'Site Address', sortable: true },
+        { field: 'materialName', headerName: 'Material Name', sortable: true},
+        { field: 'materialDescription', headerName: 'Material Description', sortable: true },
         {
             headerName: 'Actions',
             field: 'actions',
             cellRenderer: (params) => {
                 const handleEdit = () => {
-                    setSelectedCustomer(params.data.customer);
-                    setSiteName(params.data.siteName);
-                    setSiteAddress(params.data.siteAddress);
-                    setSiteId(params.data.id);
-                    setIsUpdate(true);
-                    setOpen(true);
+                  setMaterialName(params.data.materialName);
+                  setMaterialDescription(params.data.materialDescription);
+                  setMaterialId(params.data.id);
+                  setIsUpdate(true);
+                  setOpen(true);
                 };
 
                 const handleDelete = async () => {
                     try {
                       // Create a reference to the document you want to delete
-                      const siteDocRef = doc(firestore, "sites", params.data.id);
+                      const materialDocRef = doc(firestore, "materials", params.data.id);
                       // Delete the document
-                      await deleteDoc(siteDocRef);
-                      setSites((prevSites) =>
-                      prevSites.filter((site) => site.id !== params.data.id)
-                       );
+                      await deleteDoc(materialDocRef);
+                      setMaterials((prevMaterials) =>
+                        prevMaterials.filter((material) => material.id !== params.data.id)
+                      );
                       setAlert({
                         type: 'success',
-                        message: 'Site deleted successfully!',
+                        message: 'Material deleted successfully!',
                         show: true,
                       });
                     } catch (error) {
-                      console.error("Error deleting site: ", error);
+                      console.error("Error deleting material: ", error);
                       setAlert({
                         type: 'error',
-                        message: 'Error deleting site!',
+                        message: 'Error deleting material!',
                         show: true,
                       });
                     }
@@ -104,30 +91,16 @@ export default function sites() {
     }, [loading, user, router]);
 
     useEffect(() => {
-      const fetchCustomers = async () => {
-        const querySnapshot = await getDocs(collection(firestore, 'customers'));
-        const customerData = querySnapshot.docs.map((doc) => ({
-        value: doc.id, 
-        label:doc.data().customerName
-        }));
-        
-        setCustomers(customerData);
-      };
-
-      const fetchSites = async () => {
-            const querySnapshot = await getDocs(collection(firestore, 'sites'));
-            const siteData = querySnapshot.docs.map((doc) => ({
+        const fetchData = async () => {
+            const querySnapshot = await getDocs(collection(firestore, 'materials'));
+            const materialData = querySnapshot.docs.map((doc) => ({
             id: doc.id,
-            customerName:doc.data().customer.label,
             ...doc.data(),
             }));
-            console.log(siteData);
-            setSites(siteData);
-      };
-
-        fetchCustomers();
-        fetchSites();
-
+            setMaterials(materialData);
+        };
+    
+        fetchData();
     }, []);
 
     const onGridReady = (params) => {
@@ -137,31 +110,28 @@ export default function sites() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const docRef = await addDoc(collection(firestore, 'sites'), {
-                siteName: siteName,
-                siteAddress: siteAddress,
-                customer:selectedCustomer
+            const docRef = await addDoc(collection(firestore, 'materials'), {
+                materialName: materialName,
+                materialDescription: materialDescription
             });
-            const newSite = {
+            const newMaterial = {
                 id: docRef.id,
-                siteName: siteName,
-                siteAddress: siteAddress,
-                customerName:selectedCustomer.label,
-                customer:selectedCustomer
+                materialName: materialName,
+                materialDescription: materialDescription
             };
 
-            setSites((prevSites) => [...prevSites, newSite]);
+            setMaterials((prevMaterials) => [...prevMaterials, newMaterial]);
             setOpen(false);
             setAlert({
             type: 'success',
-            message: 'Site added successfully!',
+            message: 'Material added successfully!',
             show: true,
             });
         } catch (error) {
           console.error('Error adding document: ', error);
           setAlert({
             type: 'error',
-            message: 'Error adding site!',
+            message: 'Error adding material!',
             show: true,
           });
         }
@@ -171,33 +141,32 @@ export default function sites() {
         e.preventDefault();
     
         try {
-          // Reference to the specific site document
-          const siteRef = doc(firestore, 'sites', siteId);
+          // Reference to the specific material document
+          const materialRef = doc(firestore, 'materials', materialId);
     
           // Update specific fields in the Firestore document
-          await updateDoc(siteRef, {
-            siteName: siteName,
-            siteAddress: siteAddress,
-            customer:selectedCustomer
+          await updateDoc(materialRef, {
+            materialName: materialName,
+            materialDescription: materialDescription,
           });
-          setSites((prevSites) =>
-          prevSites.map((site) =>
-            site.id === siteId
-                ? { ...site, siteName, siteAddress, customer:selectedCustomer,customerName:selectedCustomer.label }
-                : site
+          setMaterials((prevMaterials) =>
+          prevMaterials.map((material) =>
+            material.id === materialId
+                ? { ...material, materialName, materialDescription }
+                : material
             )
           );
           setOpen(false);
           setAlert({
             type: 'success',
-            message: 'Site updated successfully!',
+            message: 'Material updated successfully!',
             show: true,
           });
         } catch (error) {
-          console.error('Error updating site:', error);
+          console.error('Error updating material:', error);
           setAlert({
             type: 'error',
-            message: 'Error updating site!',
+            message: 'Error updating material!',
             show: true,
           });
         }
@@ -207,10 +176,7 @@ export default function sites() {
         setAlert({ ...alert, show: false });
       };
 
-    const handleCustomerChange = (option) => {
-      setSelectedCustomer(option);
-    };
-    
+   
     
       return (
         <>
@@ -226,17 +192,17 @@ export default function sites() {
                 />
             )}
             <Sidebar></Sidebar>
-            <div className="sites">
+            <div className="materials">
                 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                   <h1 className="p-2 text-blue-600">Sites</h1>
+                   <h1 className="p-2 text-blue-600">Materials</h1>
                    <div className="p-2  pr-10 text-right flex justify-end ">
-                   <PlusIcon  className="h-6 w-6 text-blue-500 cursor-pointer" onClick={() => {setOpen(true);setSiteName("");setSiteAddress("");setSiteId("");setIsUpdate(false);setSelectedCustomer(null);}} />
+                   <PlusIcon  className="h-6 w-6 text-blue-500 cursor-pointer" onClick={() => {setOpen(true);setMaterialName("");setMaterialDescription("");setMaterialId("");setIsUpdate(false); }} />
                    </div>
                 </div>
                 <div className="ag-theme-alpine" style={{ height: "calc(100vh - 90px)", width: "100%" }}>
                 <AgGridReact
-                    rowData={sites}
+                    rowData={materials}
                     columnDefs={columnDefs}
                     defaultColDef={{ sortable: true }}
                     onGridReady={onGridReady} // Attach the grid ready event
@@ -259,35 +225,25 @@ export default function sites() {
                             <div>
                                 <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
                                     <DialogTitle as="h3" className="text-base font-semibold text-gray-900">
-                                        {isUpdate ? "Update Site" : "Add Site"}
+                                        {isUpdate ? "Update Material" : "Add Material"}
                                     </DialogTitle>
                                     <div className="mt-2">
                                     <form onSubmit={ isUpdate ? handleUpdate : handleSubmit}>
                                         <div className="mb-5">
-                                        <label htmlFor="customer" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Customer Name</label>
-                                          <Select
-                                            id="customer"
-                                            value={selectedCustomer}
-                                            onChange={handleCustomerChange}
-                                            options={customers}
-                                            styles={customStyles}
-                                          />
-                                        </div>
-                                        <div className="mb-5">
-                                            <label htmlFor="sitename" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Site Name</label>
-                                            <input type="text" id="sitename" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Site name" 
-                                            value={siteName}
-                                            onChange={(e) => setSiteName(e.target.value)}
+                                            <label htmlFor="materialname" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Material Name</label>
+                                            <input type="text" id="materialname" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Material name" 
+                                            value={materialName}
+                                            onChange={(e) => setMaterialName(e.target.value)}
                                             required />
                                         </div>
                                         <div className="mb-5">
-                                            <label htmlFor="siteaddress" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Site Address</label>
-                                            <input type="text" id="siteaddress" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Site Address" 
-                                            value={siteAddress}
-                                            onChange={(e) => setSiteAddress(e.target.value)}
+                                            <label htmlFor="materialdescription" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Material Description</label>
+                                            <input type="text" id="materialdescription" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Material Description" 
+                                            value={materialDescription}
+                                            onChange={(e) => setMaterialDescription(e.target.value)}
                                             required />
                                         </div>  
-                                                                                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                        <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                                             <button
                                                 type="submit"
                                                 className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"

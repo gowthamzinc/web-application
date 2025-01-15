@@ -61,6 +61,12 @@ const Sidebar = () => {
             <li className="py-2">
               <Link href="/sites" className="block text-gray-700">Sites</Link>
             </li>
+            <li className="py-2">
+              <Link href="/materials" className="block text-gray-700">Materials</Link>
+            </li>
+            <li className="py-2">
+              <Link href="/inward" className="block text-gray-700">Inward</Link>
+            </li>
             <li className="py-2" onClick={handleLogout}>
               <a href="#" className="block text-gray-700">Logout</a>
             </li>
