@@ -35,7 +35,7 @@ export default function dashboard() {
     return (
         <>
         <Sidebar></Sidebar>
-        <div className="p-2 bg-no-repeat bg-[url('./dashboard.png')] bg-blend-multiply" style={{ height: 'calc(100vh - 49px)', padding:"50px 0 0 50px", fontSize:"50px",backgroundPosition:"right 20%",color:"#034a8f" }}>Welcome !</div>
+        <div className="p-2 bg-no-repeat bg-[url('/dashboard.png')] bg-blend-multiply" style={{ height: 'calc(100vh - 49px)', padding:"50px 0 0 50px", fontSize:"50px",backgroundPosition:"right 20%",color:"#034a8f" }}>Welcome !</div>
         </>
     );
 }
