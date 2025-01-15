@@ -12,8 +12,15 @@ import { ClientSideRowModelModule, ValidationModule,ColumnAutoSizeModule } from 
 import useAuth from '../hooks/useAuth';
 import Sidebar from '../components/sidebar';
 import Alert from '../components/alerts';
+import Select from 'react-select';
 
-
+const customStyles = {
+  menuList: (provided) => ({
+    ...provided,
+    maxHeight: 150, // Set maximum height for the list inside the dropdown
+    overflowY: 'auto', // Enable vertical scrolling
+  }),
+};
 
 ModuleRegistry.registerModules([ClientSideRowModelModule,ValidationModule,ColumnAutoSizeModule]);
 
@@ -28,8 +35,11 @@ export default function sites() {
     const [siteAddress, setSiteAddress] = useState('');
     const [siteId, setSiteId] = useState('');
     const [sites, setSites] = useState([]);
+    const [customers, setCustomers] = useState([]);
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
     
     const [columnDefs] = useState([
+        { field: 'customerName', headerName: 'Customer Name', sortable: true},
         { field: 'siteName', headerName: 'Site Name', sortable: true},
         { field: 'siteAddress', headerName: 'Site Address', sortable: true },
         {
@@ -37,6 +47,7 @@ export default function sites() {
             field: 'actions',
             cellRenderer: (params) => {
                 const handleEdit = () => {
+                    setSelectedCustomer(params.data.customer)
                     setSiteName(params.data.siteName);
                     setSiteAddress(params.data.siteAddress);
                     setSiteId(params.data.id);
@@ -93,16 +104,30 @@ export default function sites() {
     }, [loading, user, router]);
 
     useEffect(() => {
-        const fetchData = async () => {
+      const fetchCustomers = async () => {
+        const querySnapshot = await getDocs(collection(firestore, 'customers'));
+        const customerData = querySnapshot.docs.map((doc) => ({
+        value: doc.id, 
+        label:doc.data().customerName
+        }));
+        
+        setCustomers(customerData);
+      };
+
+      const fetchSites = async () => {
             const querySnapshot = await getDocs(collection(firestore, 'sites'));
             const siteData = querySnapshot.docs.map((doc) => ({
             id: doc.id,
+            customerName:doc.data().customer.label,
             ...doc.data(),
             }));
+            console.log(siteData);
             setSites(siteData);
-        };
-    
-        fetchData();
+      };
+
+        fetchCustomers();
+        fetchSites();
+
     }, []);
 
     const onGridReady = (params) => {
@@ -115,11 +140,14 @@ export default function sites() {
             const docRef = await addDoc(collection(firestore, 'sites'), {
                 siteName: siteName,
                 siteAddress: siteAddress,
+                customer:selectedCustomer
             });
             const newSite = {
                 id: docRef.id,
                 siteName: siteName,
                 siteAddress: siteAddress,
+                customerName:selectedCustomer.label,
+                customer:selectedCustomer
             };
 
             setSites((prevSites) => [...prevSites, newSite]);
@@ -150,11 +178,12 @@ export default function sites() {
           await updateDoc(siteRef, {
             siteName: siteName,
             siteAddress: siteAddress,
+            customer:selectedCustomer
           });
           setSites((prevSites) =>
           prevSites.map((site) =>
             site.id === siteId
-                ? { ...site, siteName, siteAddress }
+                ? { ...site, siteName, siteAddress, customer:selectedCustomer,customerName:selectedCustomer.label }
                 : site
             )
           );
@@ -178,7 +207,10 @@ export default function sites() {
         setAlert({ ...alert, show: false });
       };
 
-   
+    const handleCustomerChange = (option) => {
+      setSelectedCustomer(option);
+    };
+    
     
       return (
         <>
@@ -199,7 +231,7 @@ export default function sites() {
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                    <h1 className="p-2 text-blue-600">Sites</h1>
                    <div className="p-2  pr-10 text-right flex justify-end ">
-                   <PlusIcon  className="h-6 w-6 text-blue-500 cursor-pointer" onClick={() => {setOpen(true);setSiteName("");setSiteAddress("");setSiteId("");setIsUpdate(false);}} />
+                   <PlusIcon  className="h-6 w-6 text-blue-500 cursor-pointer" onClick={() => {setOpen(true);setSiteName("");setSiteAddress("");setSiteId("");setIsUpdate(false);setSelectedCustomer(null);}} />
                    </div>
                 </div>
                 <div className="ag-theme-alpine" style={{ height: "calc(100vh - 90px)", width: "100%" }}>
@@ -232,6 +264,16 @@ export default function sites() {
                                     <div className="mt-2">
                                     <form onSubmit={ isUpdate ? handleUpdate : handleSubmit}>
                                         <div className="mb-5">
+                                        <label htmlFor="customer" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Customer Name</label>
+                                          <Select
+                                            id="customer"
+                                            value={selectedCustomer}
+                                            onChange={handleCustomerChange}
+                                            options={customers}
+                                            styles={customStyles}
+                                          />
+                                        </div>
+                                        <div className="mb-5">
                                             <label htmlFor="sitename" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Site Name</label>
                                             <input type="text" id="sitename" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Site name" 
                                             value={siteName}
@@ -245,7 +287,7 @@ export default function sites() {
                                             onChange={(e) => setSiteAddress(e.target.value)}
                                             required />
                                         </div>  
-                                        <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                                                                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                                             <button
                                                 type="submit"
                                                 className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
